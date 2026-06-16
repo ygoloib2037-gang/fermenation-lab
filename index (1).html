@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발효 실험 — 자유 탐구 활동지</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.27.0/plotly.min.js"></script>
+<style>
+/* ── 기본 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  background: #f0f2f5; color: #1a1a1a; font-size: 14px; line-height: 1.65;
+}
+
+/* ── 헤더 ── */
+header {
+  background: #1a3a5c; color: #fff;
+  padding: 18px 24px 14px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+header h1 { font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+header p  { font-size: 11px; opacity: 0.7; }
+.step-bar {
+  display: flex; gap: 0; margin-top: 10px;
+}
+.step-pill {
+  flex: 1; text-align: center; font-size: 11px; padding: 4px 0;
+  background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6);
+  cursor: pointer; transition: all 0.2s; border-right: 1px solid rgba(255,255,255,0.1);
+}
+.step-pill:first-child { border-radius: 6px 0 0 6px; }
+.step-pill:last-child  { border-radius: 0 6px 6px 0; border-right: none; }
+.step-pill.active { background: rgba(255,255,255,0.28); color: #fff; font-weight: 600; }
+.step-pill.done   { background: rgba(29,158,117,0.5);  color: #fff; }
+
+/* ── 레이아웃 ── */
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 80px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── 카드 ── */
+.card {
+  background: #fff; border: 0.5px solid #dde1e7;
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px; font-weight: 600; color: #1a3a5c;
+  margin-bottom: 12px; padding-bottom: 7px;
+  border-bottom: 1.5px solid #e8ecf2;
+  display: flex; align-items: center; gap: 6px;
+}
+.card-title .num {
+  background: #1a3a5c; color: #fff;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 11px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── 폼 ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-grid.full { grid-template-columns: 1fr; }
+@media(max-width:560px){ .form-grid { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field.span2 { grid-column: 1 / -1; }
+.field label { font-size: 11px; color: #666; font-weight: 500; }
+.field input[type=text],
+.field input[type=number],
+.field select,
+.field textarea {
+  border: 1px solid #dde1e7; border-radius: 6px;
+  padding: 7px 10px; font-size: 13px; font-family: inherit;
+  background: #fafbfc; color: #1a1a1a; outline: none; transition: border 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: #1a3a5c; background: #eef4fb;
+}
+.field textarea { min-height: 58px; resize: vertical; }
+
+/* ── 농도 설정 ── */
+.conc-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.conc-item {
+  display: flex; align-items: center; gap: 5px;
+  background: #f5f7fa; border: 0.5px solid #dde1e7;
+  border-radius: 6px; padding: 5px 8px;
+}
+.conc-item input[type=checkbox] { accent-color: #1a3a5c; width: 13px; height: 13px; }
+.conc-item input[type=number] {
+  width: 56px; border: 1px solid #dde1e7; border-radius: 4px;
+  padding: 3px 5px; font-size: 12px; text-align: center;
+  background: #fff; color: #1a1a1a; outline: none;
+}
+.conc-item input[type=number]:focus { border-color: #1a3a5c; }
+.conc-item .unit { font-size: 12px; color: #666; }
+.conc-item .del-btn {
+  background: none; border: none; color: #bbb; cursor: pointer;
+  font-size: 14px; padding: 0 2px; line-height: 1;
+}
+.conc-item .del-btn:hover { color: #c00; }
+.add-btn {
+  background: none; border: 1px dashed #aab; border-radius: 6px;
+  padding: 5px 12px; font-size: 12px; color: #778; cursor: pointer;
+}
+.add-btn:hover { background: #f0f3f7; }
+
+/* ── 데이터 테이블 ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: #1a3a5c; color: #fff;
+  font-size: 12px; font-weight: 500; padding: 8px 6px; text-align: center;
+  position: sticky; top: 0;
+}
+td { padding: 4px; border: 0.5px solid #eaecf0; text-align: center; }
+td.time-col { font-weight: 600; color: #555; font-size: 12px; background: #f8f9fb; }
+td input[type=number] {
+  width: 64px; border: 1px solid #e0e4ea; border-radius: 4px;
+  text-align: center; font-size: 13px; padding: 4px 0;
+  background: #fafbfc; color: #1a1a1a; outline: none;
+}
+td input[type=number]:focus { border-color: #1a3a5c; background: #eef4fb; }
+
+/* ── 버튼 ── */
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.btn {
+  border: 1px solid #c5cbd5; border-radius: 6px; background: #fff;
+  font-size: 13px; padding: 7px 16px; cursor: pointer;
+  color: #1a1a1a; font-family: inherit; transition: background 0.15s;
+}
+.btn:hover { background: #f0f3f7; }
+.btn.primary { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+.btn.primary:hover { background: #14304e; }
+.btn.success { background: #1D9E75; color: #fff; border-color: #1D9E75; font-weight: 600; }
+.btn.success:hover { background: #188a64; }
+.btn.danger { background: #fff; color: #c00; border-color: #f5c0c0; }
+.btn.danger:hover { background: #fff5f5; }
+.nav-row { display: flex; justify-content: space-between; margin-top: 20px; }
+
+/* ── 탐구 질문 ── */
+.q-card {
+  border-left: 3px solid #1a3a5c; border-radius: 0 8px 8px 0;
+  background: #fff; border-top: 0.5px solid #dde1e7;
+  border-right: 0.5px solid #dde1e7; border-bottom: 0.5px solid #dde1e7;
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.q-card p { font-size: 13px; font-weight: 500; color: #1a3a5c; margin-bottom: 6px; }
+.q-card textarea {
+  width: 100%; min-height: 58px; resize: vertical;
+  border: 0.5px solid #dde1e7; border-radius: 5px;
+  padding: 7px 9px; font-size: 13px; font-family: inherit;
+  background: #fafbfc; color: #1a1a1a; line-height: 1.55; outline: none;
+}
+.q-card textarea:focus { border-color: #1a3a5c; }
+
+/* ── 제출 패널 ── */
+.submit-card {
+  background: #fff; border: 0.5px solid #dde1e7; border-radius: 10px;
+  padding: 24px; text-align: center; margin-bottom: 16px;
+}
+.submit-card h2 { font-size: 16px; color: #1a3a5c; margin-bottom: 8px; }
+.submit-card p  { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.7; }
+.submit-info { background: #f5f7fa; border-radius: 8px; padding: 12px 16px; text-align: left; margin-bottom: 16px; }
+.submit-info .row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 0.5px solid #eaecf0; }
+.submit-info .row:last-child { border-bottom: none; }
+.submit-info .row .k { color: #888; }
+.submit-info .row .v { font-weight: 500; color: #1a3a5c; }
+#submitStatus { font-size: 13px; margin-top: 10px; min-height: 20px; }
+.status-ok  { color: #1D9E75; font-weight: 600; }
+.status-err { color: #c00; }
+
+/* ── 알림 토스트 ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1a3a5c; color: #fff; padding: 10px 20px;
+  border-radius: 8px; font-size: 13px; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+.tip {
+  font-size: 11px; color: #888; background: #f8f9fb;
+  border: 0.5px solid #dde1e7; border-radius: 6px;
+  padding: 6px 10px; margin-top: 6px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>발효 실험 — 자유 탐구 활동지</h1>
+  <p>탐구 계획 → 실험 조건 설정 → 데이터 입력 → 그래프 분석 → 제출</p>
+  <div class="step-bar">
+    <div class="step-pill active" onclick="goStep(0)">1 탐구 계획</div>
+    <div class="step-pill" onclick="goStep(1)">2 실험 조건</div>
+    <div class="step-pill" onclick="goStep(2)">3 데이터 입력</div>
+    <div class="step-pill" onclick="goStep(3)">4 그래프 분석</div>
+    <div class="step-pill" onclick="goStep(4)">5 결과 정리</div>
+    <div class="step-pill" onclick="goStep(5)">6 제출</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ STEP 1: 탐구 계획 ══ -->
+<div class="panel active" id="panel0">
+  <div class="card">
+    <div class="card-title"><span class="num">1</span> 탐구 계획 세우기</div>
+    <div class="form-grid">
+      <div class="field"><label>이름 / 모둠</label><input type="text" id="studentName" placeholder="예: 홍길동 / 3조"></div>
+      <div class="field"><label>날짜</label><input type="text" id="expDate" placeholder="예: 2025년 6월 16일"></div>
+      <div class="field span2"><label>탐구 제목</label><input type="text" id="expTitle" placeholder="예: 효모 농도에 따른 발효 속도 비교"></div>
+      <div class="field span2"><label>탐구 문제 (물음 형식으로)</label>
+        <textarea id="researchQ" placeholder="예: 효모의 양이 많을수록 CO₂ 발생량은 어떻게 달라질까?"></textarea>
+      </div>
+      <div class="field span2"><label>가설</label>
+        <textarea id="hypothesis" placeholder="예: 효모 농도가 높을수록 CO₂ 발생량이 증가할 것이다. 왜냐하면 효소량이 많아 반응 속도가 빨라지기 때문이다."></textarea>
+      </div>
+      <div class="field"><label>독립변인</label><input type="text" id="iv" placeholder="예: 효모의 양 (g)"></div>
+      <div class="field"><label>종속변인</label><input type="text" id="dv" placeholder="예: CO₂ 농도 (ppm)"></div>
+      <div class="field span2"><label>통제변인</label>
+        <input type="text" id="cv" placeholder="예: 포도당 농도 5%, 용액 부피 30 mL, 반응 온도 35°C">
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <span></span>
+    <button class="btn primary" onclick="goStep(1)">다음 — 실험 조건 설정 →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 2: 실험 조건 ══ -->
+<div class="panel" id="panel1">
+  <div class="card">
+    <div class="card-title"><span class="num">2</span> 실험 조건 설정</div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="field"><label>기질 및 농도</label><input type="text" id="substrate" placeholder="예: 5% 포도당 용액" value="5% 포도당 용액"></div>
+      <div class="field"><label>반응 온도 (°C)</label><input type="number" id="temp" placeholder="35" value="35" min="0" max="100"></div>
+      <div class="field"><label>측정 간격 (분)</label><input type="number" id="interval" value="5" min="1" max="60" oninput="rebuildTable()"></div>
+      <div class="field"><label>총 측정 시간 (분)</label><input type="number" id="totalTime" value="30" min="5" max="180" oninput="rebuildTable()"></div>
+      <div class="field"><label>CO₂ 측정 단위</label>
+        <select id="unit">
+          <option value="ppm">ppm</option>
+          <option value="%">%</option>
+          <option value="mg/L">mg/L</option>
+        </select>
+      </div>
+      <div class="field"><label>반복 측정 횟수</label><input type="number" id="repeat" value="1" min="1" max="5"></div>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:8px;">효모 농도 조건 (g)</div>
+    <div class="conc-grid" id="concGrid"></div>
+    <button class="add-btn" style="margin-top:8px;" onclick="addConc()">+ 조건 추가</button>
+    <div class="tip">각 조건의 농도값을 직접 입력하세요. 체크 해제 시 그래프에서 숨겨집니다.</div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="goStep(0)">← 이전</button>
+    <button class="btn primary" onclick="goStep(2)">다음 — 데이터 입력 →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 3: 데이터 입력 ══ -->
+<div class="panel" id="panel2">
+  <div class="card">
+    <div class="card-title"><span class="num">3</span> 측정 데이터 입력</div>
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn" onclick="fillSample()">예시 데이터 채우기</button>
+      <button class="btn danger" onclick="clearData()">데이터 초기화</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
+    </div>
+    <div class="tip" style="margin-top:10px;">CO₂ 센서 측정값을 각 칸에 입력하세요. 빈 칸은 그래프에서 자동으로 건너뜁니다.</div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="goStep(1)">← 이전</button>
+    <button class="btn primary" onclick="goStep(3); drawPlots()">다음 — 그래프 보기 →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 4: 그래프 ══ -->
+<div class="panel" id="panel3">
+  <div class="card">
+    <div class="card-title"><span class="num">4</span> CO₂ 농도 변화 — 꺾은선 그래프</div>
+    <div id="linePlot" style="width:100%;height:360px;"></div>
+    <div class="tip" style="margin-top:8px;">그래프를 드래그해서 확대, 더블클릭으로 초기화, 범례 클릭으로 조건 숨기기/보이기가 가능해요.</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="num">4</span> 누적 CO₂ 발생량 — 막대 그래프</div>
+    <div id="barPlot" style="width:100%;height:300px;"></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="goStep(2)">← 이전</button>
+    <button class="btn primary" onclick="goStep(4)">다음 — 결과 정리 →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 5: 결과 정리 ══ -->
+<div class="panel" id="panel4">
+  <div class="card">
+    <div class="card-title"><span class="num">5</span> 결과 정리 및 토의</div>
+    <div class="q-card">
+      <p>1. 탐구 결과를 가설과 비교하여 서술하세요.</p>
+      <textarea id="q1" placeholder="가설과 실제 결과를 비교하고, 일치 여부와 이유를 쓰세요..."></textarea>
+    </div>
+    <div class="q-card">
+      <p>2. 효모 농도가 CO₂ 발생량에 미치는 영향을 효소의 관점에서 설명하세요.</p>
+      <textarea id="q2" placeholder="효소량과 반응 속도의 관계를 중심으로..."></textarea>
+    </div>
+    <div class="q-card">
+      <p>3. 일정 농도 이상에서 발생량이 포화되는 현상이 나타났다면 그 원인은?</p>
+      <textarea id="q3" placeholder="기질 농도, 효소 활성 포화 등의 개념과 연결하여..."></textarea>
+    </div>
+    <div class="q-card">
+      <p>4. 실험의 한계점과 오차 원인 2가지 이상, 그리고 개선 방법을 쓰세요.</p>
+      <textarea id="q4" placeholder="오차 원인과 개선 방법..."></textarea>
+    </div>
+    <div class="q-card">
+      <p>5. 이 결과를 바탕으로 새로운 탐구 문제를 제안하세요.</p>
+      <textarea id="q5" placeholder="다음에 탐구하고 싶은 변인이나 조건은?..."></textarea>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="goStep(3)">← 이전</button>
+    <button class="btn primary" onclick="goStep(5)">다음 — 제출하기 →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 6: 제출 ══ -->
+<div class="panel" id="panel5">
+  <div class="submit-card">
+    <h2>탐구 활동지 제출</h2>
+    <p>아래 내용을 확인하고 제출 버튼을 눌러주세요.<br>제출하면 선생님 구글 시트에 자동으로 저장됩니다.</p>
+    <div class="submit-info" id="submitPreview"></div>
+    <button class="btn success" onclick="submitData()" style="width:100%;padding:12px;">제출하기</button>
+    <div id="submitStatus"></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="goStep(4)">← 이전으로 돌아가기</button>
+    <span></span>
+  </div>
+</div>
+
+</main>
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════
+   ★ 선생님 설정 — 여기만 수정하세요
+   ════════════════════════════════ */
+const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+/* ══════════════════════════════ */
+
+const PALETTE = ['#888780','#1a3a5c','#1D9E75','#EF9F27','#D85A30','#993556','#534AB7'];
+const DASH_STYLES = ['solid','dot','dash','dashdot','longdash','longdashdot','solid'];
+const MARKER_SYMBOLS = ['circle','triangle-up','square','diamond','cross','star','pentagon'];
+
+let concGroups = [
+  {val:'0', checked:true},
+  {val:'1', checked:true},
+  {val:'3', checked:true},
+  {val:'5', checked:true},
+  {val:'10', checked:true},
+];
+let currentStep = 0;
+
+/* ── 스텝 이동 ── */
+function goStep(n){
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===n));
+  document.querySelectorAll('.step-pill').forEach((p,i) => {
+    p.classList.toggle('active', i===n);
+    if(i < n) p.classList.add('done'); else p.classList.remove('done');
+  });
+  currentStep = n;
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(n===5) buildPreview();
+}
+
+/* ── 농도 조건 렌더링 ── */
+function renderConcGrid(){
+  const g = document.getElementById('concGrid');
+  g.innerHTML = '';
+  concGroups.forEach((item,i) => {
+    const div = document.createElement('div');
+    div.className = 'conc-item';
+    div.innerHTML = `
+      <input type="checkbox" ${item.checked?'checked':''} onchange="concGroups[${i}].checked=this.checked; rebuildTable();">
+      <input type="number" value="${item.val}" min="0" max="9999" step="0.1"
+        oninput="concGroups[${i}].val=this.value; rebuildTable();">
+      <span class="unit">g</span>
+      ${concGroups.length>1?`<button class="del-btn" onclick="removeConc(${i})">✕</button>`:''}
+    `;
+    g.appendChild(div);
+  });
+}
+
+function addConc(){
+  if(concGroups.length >= 7){ showToast('조건은 최대 7개까지 가능해요'); return; }
+  concGroups.push({val:'', checked:true});
+  renderConcGrid(); rebuildTable();
+}
+function removeConc(i){
+  concGroups.splice(i,1);
+  renderConcGrid(); rebuildTable();
+}
+
+/* ── 시간 배열 ── */
+function getTimes(){
+  const interval  = parseInt(document.getElementById('interval').value)  || 5;
+  const totalTime = parseInt(document.getElementById('totalTime').value) || 30;
+  const steps = Math.floor(totalTime / interval);
+  return Array.from({length:steps+1}, (_,i) => i*interval);
+}
+
+/* ── 테이블 재구성 ── */
+function rebuildTable(){
+  const times = getTimes();
+  const saved = concGroups.map((_,gi) =>
+    times.map((_,ti) => { const el=document.getElementById(`d${gi}-${ti}`); return el?el.value:''; })
+  );
+  const unit = document.getElementById('unit').value;
+
+  const thead = document.getElementById('thead');
+  thead.innerHTML = '<th>시간 (분)</th>' +
+    concGroups.map((g,i)=>`<th style="opacity:${g.checked?1:0.45}">${g.val||'?'} g</th>`).join('');
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  times.forEach((t,ti) => {
+    const tr = document.createElement('tr');
+    let html = `<td class="time-col">${t}</td>`;
+    concGroups.forEach((g,gi) => {
+      html += `<td style="${g.checked?'':'opacity:0.3;pointer-events:none'}">
+        <input type="number" id="d${gi}-${ti}" min="0" max="99999" step="1"
+          placeholder="-" value="${saved[gi]?.[ti]||''}">
+      </td>`;
+    });
+    tr.innerHTML = html; tbody.appendChild(tr);
+  });
+}
+
+/* ── 예시 데이터 ── */
+function fillSample(){
+  const times = getTimes();
+  const slopes = [0, 0.28, 0.65, 0.92, 0.95, 0.97, 0.98];
+  concGroups.forEach((g,gi) => {
+    const s = slopes[Math.min(gi, slopes.length-1)];
+    times.forEach((t,ti) => {
+      const el = document.getElementById(`d${gi}-${ti}`);
+      if(el) el.value = Math.round(400 + 2800 * s * (1 - Math.exp(-t/10)));
+    });
+  });
+  showToast('예시 데이터가 채워졌어요');
+}
+function clearData(){
+  const times = getTimes();
+  concGroups.forEach((_,gi) => times.forEach((_,ti) => {
+    const el = document.getElementById(`d${gi}-${ti}`); if(el) el.value='';
+  }));
+  showToast('데이터가 초기화됐어요');
+}
+
+/* ── 데이터 수집 ── */
+function getData(){
+  const times = getTimes();
+  return concGroups.map((_,gi) =>
+    times.map((_,ti) => { const v=parseFloat(document.getElementById(`d${gi}-${ti}`)?.value); return isNaN(v)?null:v; })
+  );
+}
+
+/* ── Plotly 그래프 ── */
+function drawPlots(){
+  const times = getTimes();
+  const data  = getData();
+  const unit  = document.getElementById('unit').value;
+  const dv    = document.getElementById('dv').value || `CO₂ 농도 (${unit})`;
+  const iv    = document.getElementById('iv').value || '효모 농도';
+  const title = document.getElementById('expTitle').value || '효모 농도별 CO₂ 발생량';
+
+  const layout_common = {
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    font:{family:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", size:12, color:'#333'},
+    margin:{t:40,r:20,b:50,l:60},
+    legend:{orientation:'h', y:-0.2},
+    hovermode:'x unified',
+  };
+
+  /* 꺾은선 */
+  const lineTraces = concGroups.map((g,i) => ({
+    x: times,
+    y: data[i],
+    type: 'scatter', mode: 'lines+markers',
+    name: `${g.val||'?'} g`,
+    visible: g.checked ? true : 'legendonly',
+    line: { color: PALETTE[i%PALETTE.length], width: 2, dash: DASH_STYLES[i%DASH_STYLES.length] },
+    marker: { symbol: MARKER_SYMBOLS[i%MARKER_SYMBOLS.length], size: 7, color: PALETTE[i%PALETTE.length] },
+    connectgaps: false,
+  }));
+
+  Plotly.newPlot('linePlot', lineTraces, {
+    ...layout_common,
+    title: { text: title, font:{size:13} },
+    xaxis: { title: '시간 (분)', gridcolor:'#eaecf0', zerolinecolor:'#ccc' },
+    yaxis: { title: dv, gridcolor:'#eaecf0', zerolinecolor:'#ccc' },
+  }, {responsive:true, displaylogo:false, modeBarButtonsToRemove:['select2d','lasso2d']});
+
+  /* 막대 — 누적 증가량 */
+  const initVals = data.map(g => g[0]??0);
+  const netVals  = data.map((g,i) => {
+    const last = [...g].reverse().find(v=>v!==null);
+    return Math.max(0, (last??0) - initVals[i]);
+  });
+
+  const barTraces = [{
+    x: concGroups.map(g=>`${g.val||'?'} g`),
+    y: netVals,
+    type: 'bar',
+    marker: {
+      color: PALETTE.slice(0, concGroups.length),
+      opacity: concGroups.map(g => g.checked ? 0.85 : 0.25),
+    },
+    text: netVals.map(v => Math.round(v)),
+    textposition: 'outside',
+  }];
+
+  Plotly.newPlot('barPlot', barTraces, {
+    ...layout_common,
+    title: { text: '누적 CO₂ 발생량 (초기값 대비 증가)', font:{size:13} },
+    xaxis: { title: iv, gridcolor:'#eaecf0' },
+    yaxis: { title: `CO₂ 증가량 (${unit})`, gridcolor:'#eaecf0', zerolinecolor:'#ccc' },
+    showlegend: false,
+  }, {responsive:true, displaylogo:false});
+}
+
+/* ── 제출 미리보기 ── */
+function buildPreview(){
+  const name  = document.getElementById('studentName').value || '(미입력)';
+  const date  = document.getElementById('expDate').value     || '(미입력)';
+  const title = document.getElementById('expTitle').value    || '(미입력)';
+  const hypo  = document.getElementById('hypothesis').value  || '(미입력)';
+  document.getElementById('submitPreview').innerHTML = `
+    <div class="row"><span class="k">이름/모둠</span><span class="v">${name}</span></div>
+    <div class="row"><span class="k">날짜</span><span class="v">${date}</span></div>
+    <div class="row"><span class="k">탐구 제목</span><span class="v">${title}</span></div>
+    <div class="row"><span class="k">가설</span><span class="v">${hypo.slice(0,60)}${hypo.length>60?'…':''}</span></div>
+    <div class="row"><span class="k">데이터 조건 수</span><span class="v">${concGroups.filter(g=>g.checked).length}개</span></div>
+  `;
+}
+
+/* ── 데이터 제출 ── */
+async function submitData(){
+  const statusEl = document.getElementById('submitStatus');
+  if(APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE'){
+    statusEl.innerHTML = '<span class="status-err">Apps Script URL이 설정되지 않았어요. README를 참고해 URL을 입력해주세요.</span>';
+    return;
+  }
+
+  const times = getTimes();
+  const data  = getData();
+  const payload = {
+    studentName : document.getElementById('studentName').value,
+    expDate     : document.getElementById('expDate').value,
+    expTitle    : document.getElementById('expTitle').value,
+    researchQ   : document.getElementById('researchQ').value,
+    hypothesis  : document.getElementById('hypothesis').value,
+    iv          : document.getElementById('iv').value,
+    dv          : document.getElementById('dv').value,
+    cv          : document.getElementById('cv').value,
+    substrate   : document.getElementById('substrate').value,
+    temp        : document.getElementById('temp').value,
+    interval    : document.getElementById('interval').value,
+    totalTime   : document.getElementById('totalTime').value,
+    unit        : document.getElementById('unit').value,
+    conditions  : concGroups.map(g=>g.val).join(','),
+    dataJSON    : JSON.stringify(concGroups.map((g,i)=>({ label:`${g.val}g`, values: data[i] }))),
+    q1: document.getElementById('q1').value,
+    q2: document.getElementById('q2').value,
+    q3: document.getElementById('q3').value,
+    q4: document.getElementById('q4').value,
+    q5: document.getElementById('q5').value,
+    submittedAt : new Date().toLocaleString('ko-KR'),
+  };
+
+  statusEl.innerHTML = '<span style="color:#888">제출 중...</span>';
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    statusEl.innerHTML = '<span class="status-ok">제출 완료! 선생님 시트에 저장됐어요.</span>';
+    showToast('제출이 완료됐어요!');
+  } catch(e) {
+    statusEl.innerHTML = '<span class="status-err">네트워크 오류가 발생했어요. 다시 시도해주세요.</span>';
+  }
+}
+
+/* ── 토스트 ── */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ── 초기화 ── */
+renderConcGrid();
+rebuildTable();
+document.getElementById('interval').addEventListener('input', rebuildTable);
+document.getElementById('totalTime').addEventListener('input', rebuildTable);
+</script>
+</body>
+</html>
